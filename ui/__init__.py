@@ -1,3 +1,0 @@
-"""
-Package UI - interface utilisateur
-"""
