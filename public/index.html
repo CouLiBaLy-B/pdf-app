@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Editor Pro - Éditeur PDF Professionnel</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header avec menu -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-file-pdf"></i>
+                    <h1>PDF Editor Pro</h1>
+                </div>
+                <nav class="main-nav">
+                    <button class="nav-btn" data-tab="upload">
+                        <i class="fas fa-upload"></i> Charger
+                    </button>
+                    <button class="nav-btn" data-tab="editor">
+                        <i class="fas fa-edit"></i> Éditeur
+                    </button>
+                    <button class="nav-btn" data-tab="manipulation">
+                        <i class="fas fa-tools"></i> Manipulation
+                    </button>
+                    <button class="nav-btn" data-tab="metadata">
+                        <i class="fas fa-info-circle"></i> Métadonnées
+                    </button>
+                </nav>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="saveBtn" disabled>
+                        <i class="fas fa-save"></i> Sauvegarder
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenu principal -->
+        <main class="app-main">
+            <!-- Onglet Upload -->
+            <section class="tab-content active" id="upload-tab">
+                <div class="upload-container">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <h3>Glissez-déposez votre fichier PDF ici</h3>
+                        <p>ou cliquez pour sélectionner un fichier</p>
+                        <input type="file" id="fileInput" accept=".pdf" hidden>
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-plus"></i> Choisir un fichier PDF
+                        </button>
+                    </div>
+                    
+                    <div class="recent-files" id="recentFiles">
+                        <h3><i class="fas fa-history"></i> Fichiers récents</h3>
+                        <div class="recent-list" id="recentList">
+                            <!-- Les fichiers récents seront ajoutés ici -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Onglet Éditeur -->
+            <section class="tab-content" id="editor-tab">
+                <div class="editor-layout">
+                    <!-- Panneau de gauche - Aperçu PDF -->
+                    <div class="pdf-viewer-panel">
+                        <div class="viewer-header">
+                            <div class="page-navigation">
+                                <button class="btn btn-small" id="firstPageBtn" disabled>
+                                    <i class="fas fa-angle-double-left"></i>
+                                </button>
+                                <button class="btn btn-small" id="prevPageBtn" disabled>
+                                    <i class="fas fa-angle-left"></i>
+                                </button>
+                                <span class="page-info">
+                                    <input type="number" id="currentPageInput" value="1" min="1" disabled>
+                                    <span id="totalPages">/ 0</span>
+                                </span>
+                                <button class="btn btn-small" id="nextPageBtn" disabled>
+                                    <i class="fas fa-angle-right"></i>
+                                </button>
+                                <button class="btn btn-small" id="lastPageBtn" disabled>
+                                    <i class="fas fa-angle-double-right"></i>
+                                </button>
+                            </div>
+                            <div class="zoom-controls">
+                                <button class="btn btn-small" id="zoomOutBtn">
+                                    <i class="fas fa-search-minus"></i>
+                                </button>
+                                <span id="zoomLevel">100%</span>
+                                <button class="btn btn-small" id="zoomInBtn">
+                                    <i class="fas fa-search-plus"></i>
+                                </button>
+                            </div>
+                            <div class="mode-selection">
+                                <button class="mode-btn active" data-mode="select">
+                                    <i class="fas fa-mouse-pointer"></i> Sélection
+                                </button>
+                                <button class="mode-btn" data-mode="text">
+                                    <i class="fas fa-font"></i> Texte
+                                </button>
+                                <button class="mode-btn" data-mode="highlight">
+                                    <i class="fas fa-highlighter"></i> Surligner
+                                </button>
+                            </div>
+                        </div>
+                        <div class="pdf-canvas-container">
+                            <canvas id="pdfCanvas" class="pdf-canvas"></canvas>
+                            <div class="selection-overlay" id="selectionOverlay"></div>
+                        </div>
+                    </div>
+
+                    <!-- Panneau de droite - Outils d'édition -->
+                    <div class="tools-panel">
+                        <div class="tools-tabs">
+                            <button class="tool-tab active" data-tool="text">
+                                <i class="fas fa-font"></i> Texte
+                            </button>
+                            <button class="tool-tab" data-tool="selection">
+                                <i class="fas fa-mouse-pointer"></i> Sélection
+                            </button>
+                            <button class="tool-tab" data-tool="annotation">
+                                <i class="fas fa-highlighter"></i> Annotation
+                            </button>
+                            <button class="tool-tab" data-tool="extraction">
+                                <i class="fas fa-file-export"></i> Extraction
+                            </button>
+                        </div>
+
+                        <!-- Panneau Texte -->
+                        <div class="tool-panel active" id="text-panel">
+                            <div class="panel-section">
+                                <h4><i class="fas fa-plus"></i> Ajouter du texte</h4>
+                                <div class="form-group">
+                                    <label>Texte à ajouter :</label>
+                                    <textarea id="newTextInput" placeholder="Entrez votre texte ici..."></textarea>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Position X :</label>
+                                        <input type="number" id="textX" value="100">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Position Y :</label>
+                                        <input type="number" id="textY" value="100">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Taille :</label>
+                                        <input type="number" id="fontSize" value="12" min="8" max="72">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Couleur :</label>
+                                        <select id="textColor">
+                                            <option value="black">Noir</option>
+                                            <option value="red">Rouge</option>
+                                            <option value="blue">Bleu</option>
+                                            <option value="green">Vert</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" id="addTextBtn">
+                                    <i class="fas fa-plus"></i> Ajouter le texte
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Panneau Sélection -->
+                        <div class="tool-panel" id="selection-panel">
+                            <div class="panel-section">
+                                <h4><i class="fas fa-info-circle"></i> Sélection courante</h4>
+                                <div class="selection-info" id="selectionInfo">
+                                    <p>Aucune sélection</p>
+                                </div>
+                                <div class="selection-actions">
+                                    <button class="btn btn-danger" id="deleteTextBtn" disabled>
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                    <button class="btn btn-secondary" id="copyTextBtn" disabled>
+                                        <i class="fas fa-copy"></i> Copier
+                                    </button>
+                                </div>
+                                <div class="form-group">
+                                    <label>Texte de remplacement :</label>
+                                    <textarea id="replacementText" placeholder="Nouveau texte..."></textarea>
+                                    <button class="btn btn-primary" id="replaceTextBtn" disabled>
+                                        <i class="fas fa-exchange-alt"></i> Remplacer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panneau Annotation -->
+                        <div class="tool-panel" id="annotation-panel">
+                            <div class="panel-section">
+                                <h4><i class="fas fa-highlighter"></i> Surlignage</h4>
+                                <div class="form-group">
+                                    <label>Couleur de surlignage :</label>
+                                    <div class="color-picker">
+                                        <button class="color-btn active" data-color="yellow" style="background: yellow;"></button>
+                                        <button class="color-btn" data-color="green" style="background: lightgreen;"></button>
+                                        <button class="color-btn" data-color="blue" style="background: lightblue;"></button>
+                                        <button class="color-btn" data-color="pink" style="background: lightpink;"></button>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" id="highlightBtn" disabled>
+                                    <i class="fas fa-highlighter"></i> Appliquer surlignage
+                                </button>
+                            </div>
+                            <div class="panel-section">
+                                <h4><i class="fas fa-sticky-note"></i> Notes</h4>
+                                <div class="form-group">
+                                    <label>Contenu de la note :</label>
+                                    <textarea id="noteContent" placeholder="Votre note..."></textarea>
+                                </div>
+                                <button class="btn btn-primary" id="addNoteBtn">
+                                    <i class="fas fa-plus"></i> Ajouter une note
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Panneau Extraction -->
+                        <div class="tool-panel" id="extraction-panel">
+                            <div class="panel-section">
+                                <h4><i class="fas fa-file-export"></i> Extraction de texte</h4>
+                                <div class="extraction-buttons">
+                                    <button class="btn btn-secondary" id="extractPageBtn">
+                                        <i class="fas fa-file-alt"></i> Extraire page courante
+                                    </button>
+                                    <button class="btn btn-secondary" id="extractAllBtn">
+                                        <i class="fas fa-file-text"></i> Extraire tout le texte
+                                    </button>
+                                </div>
+                                <div class="form-group">
+                                    <label>Texte extrait :</label>
+                                    <textarea id="extractedText" readonly placeholder="Le texte extrait apparaîtra ici..."></textarea>
+                                </div>
+                                <button class="btn btn-primary" id="saveTextBtn" disabled>
+                                    <i class="fas fa-download"></i> Télécharger le texte
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Onglet Manipulation -->
+            <section class="tab-content" id="manipulation-tab">
+                <div class="manipulation-container">
+                    <div class="manipulation-section">
+                        <h3><i class="fas fa-cut"></i> Extraction de pages</h3>
+                        <div class="form-group">
+                            <label>Pages à extraire (ex: 1,3,5-7) :</label>
+                            <input type="text" id="extractPages" placeholder="1,3,5-7">
+                        </div>
+                        <button class="btn btn-primary" id="extractPagesBtn">
+                            <i class="fas fa-scissors"></i> Extraire les pages
+                        </button>
+                    </div>
+
+                    <div class="manipulation-section">
+                        <h3><i class="fas fa-compress-arrows-alt"></i> Fusion de PDF</h3>
+                        <div class="merge-area">
+                            <input type="file" id="mergeFiles" multiple accept=".pdf" hidden>
+                            <button class="btn btn-secondary" onclick="document.getElementById('mergeFiles').click()">
+                                <i class="fas fa-plus"></i> Ajouter des fichiers PDF
+                            </button>
+                            <div class="merge-list" id="mergeList"></div>
+                            <button class="btn btn-primary" id="mergeBtn" disabled>
+                                <i class="fas fa-compress-arrows-alt"></i> Fusionner les PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="manipulation-section">
+                        <h3><i class="fas fa-redo"></i> Rotation de pages</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Pages à faire tourner :</label>
+                                <input type="text" id="rotatePages" placeholder="1,3,5-7">
+                            </div>
+                            <div class="form-group">
+                                <label>Angle :</label>
+                                <select id="rotateAngle">
+                                    <option value="90">90°</option>
+                                    <option value="180">180°</option>
+                                    <option value="270">270°</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="rotateBtn">
+                            <i class="fas fa-redo"></i> Appliquer la rotation
+                        </button>
+                    </div>
+
+                    <div class="manipulation-section">
+                        <h3><i class="fas fa-compress"></i> Compression</h3>
+                        <div class="form-group">
+                            <label>Niveau de compression :</label>
+                            <select id="compressionLevel">
+                                <option value="low">Faible (meilleure qualité)</option>
+                                <option value="medium" selected>Moyen</option>
+                                <option value="high">Élevé (plus petit fichier)</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="compressBtn">
+                            <i class="fas fa-compress"></i> Compresser le PDF
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Onglet Métadonnées -->
+            <section class="tab-content" id="metadata-tab">
+                <div class="metadata-container">
+                    <div class="metadata-section">
+                        <h3><i class="fas fa-info-circle"></i> Informations du document</h3>
+                        <div class="metadata-form">
+                            <div class="form-group">
+                                <label>Titre :</label>
+                                <input type="text" id="metaTitle" placeholder="Titre du document">
+                            </div>
+                            <div class="form-group">
+                                <label>Auteur :</label>
+                                <input type="text" id="metaAuthor" placeholder="Nom de l'auteur">
+                            </div>
+                            <div class="form-group">
+                                <label>Sujet :</label>
+                                <input type="text" id="metaSubject" placeholder="Sujet du document">
+                            </div>
+                            <div class="form-group">
+                                <label>Mots-clés :</label>
+                                <input type="text" id="metaKeywords" placeholder="Mots-clés séparés par des virgules">
+                            </div>
+                            <div class="form-group">
+                                <label>Créateur :</label>
+                                <input type="text" id="metaCreator" placeholder="Application créatrice">
+                            </div>
+                            <div class="form-group">
+                                <label>Producteur :</label>
+                                <input type="text" id="metaProducer" placeholder="Producteur du PDF">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Date de création :</label>
+                                    <input type="datetime-local" id="metaCreationDate">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date de modification :</label>
+                                    <input type="datetime-local" id="metaModificationDate">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metadata-actions">
+                            <button class="btn btn-secondary" id="loadMetadataBtn">
+                                <i class="fas fa-sync"></i> Charger les métadonnées
+                            </button>
+                            <button class="btn btn-primary" id="saveMetadataBtn">
+                                <i class="fas fa-save"></i> Sauvegarder les métadonnées
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="metadata-section">
+                        <h3><i class="fas fa-chart-bar"></i> Statistiques du document</h3>
+                        <div class="stats-grid" id="documentStats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="pageCount">0</div>
+                                <div class="stat-label">Pages</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="fileSize">0 KB</div>
+                                <div class="stat-label">Taille</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="wordCount">0</div>
+                                <div class="stat-label">Mots</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="charCount">0</div>
+                                <div class="stat-label">Caractères</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Barre de statut -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span id="statusText">Prêt</span>
+            </div>
+            <div class="status-right">
+                <span id="documentInfo">Aucun document chargé</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Overlays et modales -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p id="loadingText">Chargement...</p>
+    </div>
+
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+# Multi-stage build pour optimiser la taille de l'image
+FROM node:18-alpine AS builder
+
+# Installer les dépendances système nécessaires
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    musl-dev \
+    giflib-dev \
+    pixman-dev \
+    pangomm-dev \
+    libjpeg-turbo-dev \
+    freetype-dev
+
+WORKDIR /app
+
+# Copier les fichiers de dépendances
+COPY server/package*.json ./
+COPY server/yarn.lock* ./
+
+# Installer les dépendances
+RUN npm ci --only=production && npm cache clean --force
+
+# Stage de production
+FROM node:18-alpine AS production
+
+# Créer un utilisateur non-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S pdfeditor -u 1001
+
+# Installer les dépendances runtime
+RUN apk add --no-cache \
+    cairo \
+    jpeg \
+    pango \
+    musl \
+    giflib \
+    pixman \
+    pangomm \
+    libjpeg-turbo \
+    freetype \
+    ttf-dejavu \
+    fontconfig \
+    dumb-init
+
+WORKDIR /app
+
+# Copier les dépendances depuis le builder
+COPY --from=builder --chown=pdfeditor:nodejs /app/node_modules ./node_modules
+
+# Copier le code de l'application
+COPY --chown=pdfeditor:nodejs server/ ./
+COPY --chown=pdfeditor:nodejs public/ ./public/
+
+# Créer les répertoires nécessaires
+RUN mkdir -p uploads temp logs && \
+    chown -R pdfeditor:nodejs uploads temp logs
+
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV LOG_LEVEL=info
+
+# Exposer le port
+EXPOSE 3000
+
+# Changer vers l'utilisateur non-root
+USER pdfeditor
+
+# Vérification de santé
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node healthcheck.js
+
+# Utiliser dumb-init pour gérer les signaux
+ENTRYPOINT ["dumb-init", "--"]
+
+# Commande de démarrage
+CMD ["node", "server.js"]

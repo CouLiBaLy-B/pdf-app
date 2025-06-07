@@ -1,25 +1,33 @@
-# Dockerfile pour containeriser l'application (pour développement)
-FROM python:3.13-slim
+FROM node:18-alpine
 
-# Installer les dépendances système
-RUN apt-get update && apt-get install -y \
-    python3-tk \
-    && rm -rf /var/lib/apt/lists/*
-
-# Créer le répertoire de travail
+# Créer le répertoire de l'application
 WORKDIR /app
 
-# Copier les fichiers de dépendances
-COPY requirements.txt .
+# Copier les fichiers package.json
+COPY server/package*.json ./server/
+COPY public/ ./public/
 
-# Installer les dépendances Python
-RUN pip install --no-cache-dir -r requirements.txt
+# Installer les dépendances
+WORKDIR /app/server
+RUN npm ci --only=production
 
 # Copier le code source
-COPY . .
+COPY server/ .
 
-# Exposer le port pour X11 forwarding (si nécessaire)
-ENV DISPLAY=:0
+# Créer un utilisateur non-root
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
 
-# Commande par défaut
-CMD ["python", "main.py"]
+# Changer la propriété des fichiers
+RUN chown -R nodejs:nodejs /app
+USER nodejs
+
+# Exposer le port
+EXPOSE 3000
+
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Commande de démarrage
+CMD ["npm", "start"]
